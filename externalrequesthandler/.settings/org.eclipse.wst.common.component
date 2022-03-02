@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="externalrequesthandler">
+        <wb-resource deploy-path="/" source-path="/WebContent" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/test"/>
+        <dependent-module archiveName="core.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/core/core">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="configurationhandler.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/configurationhandler/configurationhandler">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="common_integrator.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/common_integrator/common_integrator">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="txn_data.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/txn_data/txn_data">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="pdx_dispensing_invocation_adapter.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/pdx_dispensing_invocation_adapter/pdx_dispensing_invocation_adapter">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="web_epharmacy_invocation.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/web_epharmacy_invocation/web_epharmacy_invocation">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="java-output-path" value="/externalrequesthandler/build/classes"/>
+        <property name="context-root" value="externalrequesthandler"/>
+    </wb-module>
+</project-modules>
