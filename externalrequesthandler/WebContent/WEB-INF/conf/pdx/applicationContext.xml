@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+
+
+    <!-- ADD PERSISTENCE SUPPORT HERE (jpa, hibernate, etc) -->
+  
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="url" value="${datasource.transactiondbhostname}" />
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="username" value="${datasource.username}" />
+		<property name="password" value="${datasource.writepassword}" />
+
+	</bean>
+	
+	<!-- <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<property name="driverClass" value="com.mysql.jdbc.Driver" />
+		<property name="jdbcUrl" value="${datasource.transactiondbhostname}" />
+		<property name="user" value="${datasource.username}" />
+		<property name="password" value="${datasource.writepassword}" />
+		<property name="acquireIncrement" value="${erh.acquireincrement}" />
+		<property name="minPoolSize" value="${erh.minpoolsize}" />
+		<property name="maxPoolSize" value="${erh.maxpoolsize}" />
+		<property name="initialPoolSize" value="${erh.initialpoolsize}" />
+		<property name="maxIdleTime" value="${erh.maxidletime}" />
+		<property name="maxIdleTimeExcessConnections" value="${erh.maxidletimeexcessconnections}" />
+		<property name="maxConnectionAge" value="${erh.maxconnectionage}" />
+		<property name="unreturnedConnectionTimeout" value="${erh.unreturnedconnectiontimeout}" />
+		<property name="debugUnreturnedConnectionStackTraces"  value="${erh.debugunreturnedconnectionstacktraces}" />
+	</bean> -->
+
+	
+ <!--                                                                      -->
+ <!-- Configuration for encryptor, based on environment variables.         -->
+ <!--                                                                      -->
+ <!-- In this example, the encryption password will be read from an        -->
+ <!-- environment variable called "APP_ENCRYPTION_PASSWORD" which, once    -->
+ <!-- the application has been started, could be safely unset.             -->
+
+    <bean id="environmentVariablesConfiguration"
+     class="org.jasypt.encryption.pbe.config.EnvironmentStringPBEConfig">
+        <property name="algorithm" value="PBEWithMD5AndDES" />
+        <property name="passwordEnvName" value="APP_ENCRYPTION_PASSWORD" />
+    </bean>
+
+ <!--                                                                      -->
+ <!-- The will be the encryptor used for decrypting configuration values.  -->
+ <!--                                                                      -->
+    <bean id="configurationEncryptor"
+     class="org.jasypt.encryption.pbe.StandardPBEStringEncryptor">
+       <!-- <property name="config" ref="environmentVariablesConfiguration" /> -->
+        <property name="algorithm">
+            <value>PBEWithMD5AndDES</value>
+        </property>
+        <property name="password">
+            <value>mscriptssecurity</value>
+        </property>
+    </bean>
+
+
+ <!--                                                                      -->
+ <!-- The EncryptablePropertyPlaceholderConfigurer will read the           -->
+ <!-- .properties files and make their values accessible as ${var}         -->
+ <!--                                                                      -->
+ <!-- Our "configurationEncryptor" bean (which implements                  -->
+ <!-- org.jasypt.encryption.StringEncryptor) is set as a constructor arg.  -->
+ <!--                                                                      -->
+    <bean id="propertyConfigurer"
+     class="org.jasypt.spring.properties.EncryptablePropertyPlaceholderConfigurer">
+        <constructor-arg ref="configurationEncryptor" />
+        <property name="searchSystemEnvironment" value="true"/>
+ 		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+        <property name="locations">
+            <list>
+                <value>/runtime.properties</value>
+            </list>
+        </property>
+
+    </bean>
+
+      <!-- Specify Transaction features. Applied to all data acceess methods
+                in Services layer. Services get called from controllers. -->
+    <bean id="transactionManager"
+             class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+      <!-- Parent bean which specifies transaction. One time declaration for all children
+        services -->
+    <bean id="transProxyParent" abstract="true"
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager" ref="transactionManager" />
+        <property name="transactionAttributes">
+            <props>
+                <prop key="*">PROPAGATION_REQUIRES_NEW,-Exception</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="appConfiguration" class="com.mscripts.utils.PropertyConfiguration"
+        init-method="init">
+        <property name="locations">
+            <list>
+                    <!--
+                            Property files are loaded in the order below.
+                            First entry found will set the value. Any "file"
+                            will be regularly checked for updates and reloaded
+                            if changed.
+                    ->
+                    <value>classpath:com/httphandler.properties</value>-->
+                <value>/externalrequesthandler.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id ="pHICredentials" class="com.mscripts.utils.PHICredentials">
+        <property name="secondaryKey" value="${datasource.key}"/>
+    </bean>
+     <!-- DAO Definitions -->
+
+    <bean id="generalDao" class="com.mscripts.externalrequesthandler.dao.jdbc.GeneralDaoJdbc"  parent="transProxyParent">
+        <property name="spInvoker" ref="spInvoker" />
+        <property name="readInvoker" ref="readInvoker" />
+		<property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+    <bean id="notificationDao" class="com.mscripts.externalrequesthandler.dao.jdbc.NotificationDaoJdbc"  parent="transProxyParent">
+        <property name="spInvoker" ref="spInvoker" />
+        <property name="readInvoker" ref="readInvoker" />
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+    <bean id="couponFeedDao" class="com.mscripts.externalrequesthandler.dao.jdbc.CouponFeedDaoJdbc"  parent="transProxyParent">
+        <property name="spInvoker" ref="spInvoker" />
+    </bean>
+
+    <bean id="tenForTenFeedDao" class="com.mscripts.externalrequesthandler.dao.jdbc.TenForTenFeedDaoJdbc"  parent="transProxyParent">
+        <property name="readInvoker" ref="readInvoker" />
+    </bean>
+	
+	<bean id="patientNotificationDao" class="com.mscripts.externalrequesthandler.dao.jdbc.PatientNotificationDaoJdbc" >
+        <property name="queryInvoker" ref="queryInvoker" />
+        <property name = "spInvoker" ref ="spInvoker"/>
+    </bean>
+	
+	<bean id="messageDao" class="com.mscripts.commonintegrator.dao.jdbc.MessageDaoJdbc"
+		parent="transProxyParent">
+		<property name="spInvoker" ref="spInvoker" />
+		<property name="readInvoker" ref="readInvoker" />		
+		<property name="pHICredentials" ref="pHICredentials" />
+	</bean>
+
+    <!-- SERVICE Definitions -->
+    <bean id="generalService" class="com.mscripts.externalrequesthandler.service.GeneralServiceImpl" parent="transProxyParent">
+        <property name="clientDao" ref="clientDao"/>
+        <property name="generalDao" ref="generalDao" />
+        <property name="smsService" ref="smsService" />
+        <property name="mailService" ref="mailService" />
+        <property name="pHICredentials" ref="pHICredentials"/>
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao"/>
+        <property name="encryptionUtil" ref="encryptionUtil" />
+        <property name="mscriptsCommonService" ref="mscriptsCommonService" />
+        <property name="dispensingPatientService" ref="dispensingPatientService" />
+    	<property name="schService" ref="schService" />
+    </bean>
+
+    <bean id="notificationService" class="com.mscripts.externalrequesthandler.service.NotificationServiceImpl" parent="transProxyParent">
+        <property name="notificationDao" ref="notificationDao" />
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao" />
+        <property name="smsService" ref="smsService" />
+        <property name="apnsService" ref="apnsService"/>
+        <property name="mailService" ref="mailService" />
+        <property name="gcmsService" ref="gcmsService"/>
+        <property name="generalDao" ref="generalDao" />
+        <property name="pHICredentials" ref="pHICredentials"/>
+        <property name="fcmService" ref="fcmService"/>
+		<property name="notificationFilterUtil" ref="notificationFilterUtil" />
+		<property name="textMaskingService" ref="textMaskingService" />
+		<property name="ivrService" ref="ivrService" />
+		<property name="mscriptsCommonService" ref="mscriptsCommonService" />
+		<property name="urlShortnerService" ref="urlShortnerService" />
+		<property name="drugFilterCriteriaUtil" ref="drugFilterCriteriaUtil" />
+   </bean>
+   
+   <bean id="drugFilterCriteriaUtil"
+	class="com.mscripts.utils.DrugFilterCriteriaUtil">
+	<property name="cacheManager" ref="cacheManager" />
+</bean>
+
+    <bean id="couponFeedService" class="com.mscripts.externalrequesthandler.service.CouponFeedServiceImpl" parent="transProxyParent">
+        <property name="couponFeedDao" ref="couponFeedDao" />
+        <property name="appConfiguration" ref="appConfiguration" />
+    </bean>
+    
+    <bean id="tenForTenFeedService" class="com.mscripts.externalrequesthandler.service.TenForTenFeedServiceImpl" parent="transProxyParent">
+        <property name="tenForTenFeedDao" ref="tenForTenFeedDao" />
+        <property name="appConfiguration" ref="appConfiguration" />
+    </bean>
+		
+	<bean id="patientNotificationService" class="com.mscripts.externalrequesthandler.service.PatientNotificationServiceImpl">
+		<property name="pHICredentials" ref="pHICredentials" />
+        <property name="queryInvoker" ref="queryInvoker" />
+		<property name="messageService" ref="messageService" />
+		<property name="patientNotificationDao" ref="patientNotificationDao" />
+		<property name="eopnUtils" ref="eopnUtils" />
+		<property name="patientRxTxnMedianService" ref="patientRxTxnMedianService" />
+		<property name="dawCodeService" ref="dawCodeService" />
+		<property name="mscriptsCommonService" ref="mscriptsCommonService" />
+		<property name="dispensingPatientService" ref="dispensingPatientService" />
+		<property name="mscriptsCommonDao" ref="mscriptsCommonDao" />
+		<property name="drugFilterCriteriaUtil" ref="drugFilterCriteriaUtil" />
+	 </bean>
+	
+	<bean id="messageService" class="com.mscripts.commonintegrator.service.impl.MessageServiceImpl"  parent="transProxyParent">
+        <property name="messageDao" ref="messageDao" />		
+		<property name="smsService" ref="smsService" />
+		<property name="mscriptsCommonDao" ref="mscriptsCommonDao" />
+		<property name="pHICredentials" ref="pHICredentials" />
+		
+    </bean>
+	
+	<!-- txn_data beans starts here -->
+	<bean id="clientsDao" class="com.mscripts.txndata.dao.jdbc.ClientsDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+	<bean id="dawCodeDao" class="com.mscripts.txndata.dao.jdbc.DawCodeDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+	<bean id="patientPaymentMethodDao" class="com.mscripts.txndata.dao.jdbc.PatientPaymentMethodDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+	<bean id="patientRxTxnDao" class="com.mscripts.txndata.dao.jdbc.PatientRxTxnDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+    <bean id="patientRxTxnHistoryDao" class="com.mscripts.txndata.dao.jdbc.PatientRxTxnHistoryDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+    <bean id="patientRxTxnMedianDao" class="com.mscripts.txndata.dao.jdbc.PatientRxTxnMedianDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+	<bean id="paymentTypeDao" class="com.mscripts.txndata.dao.jdbc.PaymentTypeDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+    <bean id="rxTxnStatusDao" class="com.mscripts.txndata.dao.jdbc.RxTxnStatusDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+	<bean id="clientsService" class="com.mscripts.txndata.service.impl.ClientsServiceImpl">
+        <property name="clientsDao" ref="clientsDao"/>
+		<property name="phiCredentials" ref="pHICredentials"/>        
+    </bean>
+
+	<bean id="dawCodeService" class="com.mscripts.txndata.service.impl.DawCodeServiceImpl">
+        <property name="dawCodeDao" ref="dawCodeDao"/>		        
+    </bean>
+
+	<bean id="patientPaymentMethodService" class="com.mscripts.txndata.service.impl.PatientPaymentMethodServiceImpl">
+        <property name="patientPaymentMethodDao" ref="patientPaymentMethodDao"/>
+		<property name="clientsService" ref="clientsService"/>
+		<property name="paymentTypeService" ref="paymentTypeService"/>
+    </bean>
+	
+	<bean id="patientLoyaltyCardService" class="com.mscripts.txndata.service.impl.PatientLoyaltyCardServiceImpl">
+        <property name="patientLoyaltyCardDao" ref="patientLoyaltyCardDao"/>
+		<property name="clientsService" ref="clientsService"/>
+
+    </bean>
+	<bean id="patientLoyaltyCardDao" class="com.mscripts.txndata.dao.jdbc.PatientLoyaltyCardJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+
+	<bean id="patientRxTxnHistoryService" class="com.mscripts.txndata.service.impl.PatientRxTxnHistoryServiceImpl">
+        <property name="patientRxTxnHistoryDao" ref="patientRxTxnHistoryDao"/>		        
+    </bean>
+
+    <bean id="patientRxTxnMedianService" class="com.mscripts.txndata.service.impl.PatientRxTxnMedianServiceImpl">
+        <property name="patientRxTxnMedianDao" ref="patientRxTxnMedianDao"/>
+        <property name="dawCodeService" ref="dawCodeService"/>
+        <property name="rxTxnStatusService" ref="rxTxnStatusService"/>
+    </bean>
+
+    <bean id="patientRxTxnService" class="com.mscripts.txndata.service.impl.PatientRxTxnServiceImpl">
+        <property name="patientRxTxnDao" ref="patientRxTxnDao"/>
+        <property name="dawCodeService" ref="dawCodeService"/>
+        <property name="rxTxnStatusService" ref="rxTxnStatusService"/>		        
+    </bean>
+
+	<bean id="paymentTypeService" class="com.mscripts.txndata.service.impl.PaymentTypeServiceImpl">
+        <property name="paymentTypeDao" ref="paymentTypeDao"/>
+		<property name="clientsService" ref="clientsService"/>		
+    </bean>
+
+    <bean id="rxTxnStatusService" class="com.mscripts.txndata.service.impl.RxTxnStatusServiceImpl">
+        <property name="rxTxnStatusDao" ref="rxTxnStatusDao"/>		        
+    </bean>	
+	
+	<bean id="patientLoyaltyCardPreferenceService" class="com.mscripts.txndata.service.impl.PatientLoyaltyCardPreferenceServiceImpl">
+        <property name="patientLoyaltyCardPreferenceDao" ref="patientLoyaltyCardPreferenceDao"/>		        
+    </bean>
+	
+	<bean id="patientLoyaltyCardPreferenceDao" class="com.mscripts.txndata.dao.jdbc.PatientLoyaltyCardPreferenceDaoJdbc">
+        <property name="queryInvoker" ref="queryInvoker" />
+    </bean>
+	<!-- txn_data beans ends here -->
+	
+    <!-- mscriptscore beans starts here -->
+    <bean id="mscriptsCommonDao" class="com.mscripts.dao.jdbc.MscriptsCommonDaoImpl">
+        <property name="readInvoker" ref="readInvoker" />
+        <property name="spInvoker" ref="spInvoker" />
+        <property name="actionLogsInvoker" ref="actionLogsInvoker" />
+        <property name="queryInvoker" ref="queryInvoker" />
+        <property name="redisManager" ref="redisManager" />
+     </bean>
+
+    <bean id="clientDao" class="com.mscripts.dao.jdbc.ClientDaoJdbc">
+        <property name="readInvoker" ref="readInvoker" />
+    </bean>
+
+    <bean id="mscriptsCommonService" class="com.mscripts.service.impl.MscriptsCommonServiceImpl">
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao"/>
+        <property name="clientDao" ref="clientDao"/>
+        <property name="pHICredentials" ref="pHICredentials"/>
+    </bean>
+
+    <bean id="mscriptsExceptionHandler" class="com.mscripts.utils.mscriptsExceptionHandler">
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao"/>
+        
+    </bean>
+
+    <bean id="smsService" class="com.mscripts.service.impl.SmsServiceImpl" parent="transProxyParent">
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao" />
+         <property name="pHICredentials" ref="pHICredentials"/>
+    </bean>
+
+    <bean id="apnsService" class="com.mscripts.service.impl.APNSServiceImpl">
+       
+    </bean>
+    
+    <bean id="gcmsService" class="com.mscripts.service.impl.GCMSServiceImpl">
+        
+    </bean>
+    
+    <bean id="fcmService" class="com.mscripts.service.impl.FCMServiceImpl">
+        
+    </bean>
+
+    <bean id ="spInvoker" class ="com.mscripts.dao.jdbc.SPInvokerImpl">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+	
+	<bean id="queryInvoker" class="com.mscripts.dao.jdbc.QueryInvokerImpl"
+		parent="transProxyParent">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+    <bean id ="actionLogsInvoker" class ="com.mscripts.dao.jdbc.SPInvokerImpl">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+    <bean id ="readInvoker" class ="com.mscripts.dao.jdbc.SPInvokerImpl">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+    <bean id="mailService" class="com.mscripts.service.impl.MailServiceImpl">
+        
+        <property name="awsCredentials" ref="awsCredentials"/>
+    </bean>
+
+    <bean id="awsCredentials" class="com.mscripts.utils.AwsCredentials">
+        <property name="accessKey" value="${datasource.accessKey}"/>
+        <property name="secretKey" value="${datasource.secretKey}"/>
+    </bean>
+	
+    <bean id="encryptionUtil" class="com.mscripts.utils.EncryptionUtil">
+        <constructor-arg value="${datasource.staticencryptionkey}" />
+    </bean>
+    <!-- mscriptscore beans ends here -->
+    
+    	<bean id="configManager" class="com.mscripts.configurationhandler.config.ConfigManager" init-method="init">		
+		<property name="configFolderPath" value="${confighandler.folderpath}"/>
+		<property name="environment" value="${confighandler.env}"/>		
+	</bean>
+
+	<bean id="configReader" class="com.mscripts.configurationhandler.config.ConfigReader">
+	</bean>
+	<bean id="notificationFilterService" class="com.mscripts.service.impl.NotificationFilterServiceImpl">
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao"/>
+    </bean>
+    <bean id="cacheManager" class="com.mscripts.cache.CacheManager" init-method="init">
+    	<property name="hazelcastPort" value="${cache.port}" />
+        <property name="mscriptsCommonService" ref="mscriptsCommonService" />
+        <property name="notificationFilterService" ref="notificationFilterService"/>
+		<property name="clientPreferencesService" ref="clientPreferencesService"/>
+		<property name="drugFilterCacheService" ref="drugFilterCacheService"/>
+   </bean>
+    <bean id="drugFilterCacheService" class="com.mscripts.service.impl.DrugFilterCacheServiceImpl">
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao"/>
+    </bean>
+	<bean id="clientPreferencesService" class="com.mscripts.service.impl.ClientPreferencesServiceImpl">
+        <property name="mscriptsCommonDao" ref="mscriptsCommonDao"/>
+    </bean>
+    <bean id="notificationFilterUtil" class="com.mscripts.utils.NotificationFilterUtil">
+        <property name="notificationFilterService" ref="notificationFilterService"/>
+        <property name="cacheManager" ref="cacheManager"/>
+    </bean>
+	
+	<!-- Masking RX Name - Core Util -->
+	<bean id="textMaskingService" class="com.mscripts.utils.TextMaskingService">
+		<property name="clientPreferencesUtils" ref="clientPreferencesUtils"/>
+	</bean>
+	<bean id="clientPreferencesUtils" class="com.mscripts.utils.ClientPreferencesUtils">
+        
+        <property name="cacheManager" ref="cacheManager"/>
+    </bean>
+    <bean id="dispensingPatientService"
+		class="com.mscripts.dispensing.invocation.service.impl.PdxDispensingPatientServiceImpl">
+		<property name="pdxadaptor" ref="pdxadaptor" />
+	</bean>
+	
+    <bean id="pdxadaptor"
+		class="com.mscripts.dispensing.adapters.pdx.PdxDispensingAdapter" >
+	</bean>
+	
+	<bean id="ivrService"
+		class="com.mscripts.service.impl.IvrServiceImpl">
+	</bean>
+	
+	<bean id="schService" 
+		class="com.mscripts.service.impl.SCHServiceImpl">
+	</bean>
+	<bean id="urlShortnerService"
+		class="com.mscripts.service.impl.URLShortnerImpl">
+		<property name="queryInvoker" ref="queryInvoker" />
+	</bean>
+	
+	<bean id="eopnUtils" class="com.mscripts.externalrequesthandler.utils.EOPNUtils">
+		<property name="patientNotificationDao" ref="patientNotificationDao" />
+		<property name="mscriptsCommonService" ref="mscriptsCommonService" />
+		<property name="pHICredentials" ref="pHICredentials" />	
+		<property name="smsService" ref="smsService" />
+		<property name="apnsService" ref="apnsService" />
+		<property name="gcmsService" ref="gcmsService" />
+		<property name="mailService" ref="mailService" />
+		<property name="mscriptsCommonDao" ref="mscriptsCommonDao" />
+		<property name="ivrService" ref="ivrService" />
+		<property name="fcmService" ref="fcmService"/>
+		<property name="notificationFilterUtil" ref="notificationFilterUtil" />
+		<property name="queryInvoker" ref="queryInvoker" />
+		<property name="patientPaymentMethodService" ref="patientPaymentMethodService" />
+		<property name="textMaskingService" ref="textMaskingService" />
+        <property name="patientLoyaltyCardService" ref="patientLoyaltyCardService" />
+        <property name="notificationDao" ref="notificationDao" />
+        <property name="urlShortnerService" ref="urlShortnerService" />	
+    </bean>
+    
+    <bean id="redisManager" class="com.mscripts.cache.RedisManager" >
+    </bean>
+</beans>

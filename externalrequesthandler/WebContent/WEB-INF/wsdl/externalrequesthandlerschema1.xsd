@@ -1,0 +1,65 @@
+<!--
+ Published by JAX-WS RI at http://jax-ws.dev.java.net. RI's version is Metro/2.2.0-1 (tags/2.2.0u1-7139; 2012-06-02T10:55:19+0000) JAXWS-RI/2.2.6-2 JAXWS/2.2 svn-revision#unknown. 
+-->
+<xs:schema xmlns:tns="http://service.externalrequesthandler.mscripts.com/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://service.externalrequesthandler.mscripts.com/">
+<xs:element name="feedCoupons" type="tns:feedCoupons"/>
+<xs:element name="feedCouponsResponse" type="tns:feedCouponsResponse"/>
+<xs:element name="feedTenForTen" type="tns:feedTenForTen"/>
+<xs:element name="feedTenForTenResponse" type="tns:feedTenForTenResponse"/>
+<xs:element name="initialLinkTokenMessage" type="tns:initialLinkTokenMessage"/>
+<xs:element name="initialLinkTokenMessageResponse" type="tns:initialLinkTokenMessageResponse"/>
+<xs:element name="updateNotification" type="tns:updateNotification"/>
+<xs:element name="updateNotificationResponse" type="tns:updateNotificationResponse"/>
+<xs:complexType name="updateNotification">
+<xs:sequence>
+<xs:element name="patient_change_xml" type="xs:string" minOccurs="0"/>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="updateNotificationResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="feedTenForTen">
+<xs:sequence>
+<xs:element name="TenForTenList" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="feedTenForTenResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="initialLinkTokenMessage">
+<xs:sequence>
+<xs:element name="mobile" type="xs:string" minOccurs="0"/>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="verificationCode" type="xs:string" minOccurs="0"/>
+<xs:element name="action" type="xs:string" minOccurs="0"/>
+<xs:element name="fName" type="xs:string" minOccurs="0"/>
+<xs:element name="lName" type="xs:string" minOccurs="0"/>
+<xs:element name="storeID" type="xs:string" minOccurs="0"/>
+<xs:element name="timeZone" type="xs:string" minOccurs="0"/>
+<xs:element name="oldToken" type="xs:string" minOccurs="0"/>
+<xs:element name="oldMobile" type="xs:string" minOccurs="0"/>
+<xs:element name="survivingToken" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="initialLinkTokenMessageResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="feedCoupons">
+<xs:sequence>
+<xs:element name="campaignId" type="xs:string" minOccurs="0"/>
+<xs:element name="campaignXml" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="feedCouponsResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>
